@@ -227,7 +227,6 @@
         ];
         
         // Array of different color palettes for the animated background
-        // UPDATED: Focused on pure, high-saturation, bright colors
         const GRADIENT_PALETTES = [
             // Palette 1: Rainbow Bright (Pure R, Y, G, B)
             'linear-gradient(135deg, #FF0000, #FFFF00, #00FF00, #00FFFF, #FF0000)',
@@ -244,8 +243,8 @@
         // --- GLOBAL STATE VARIABLES ---
         let currentQuoteIndex = 0;
         let currentGradientIndex = 0;
-        let lastMinute = -1; // Tracks the last minute processed for quote change
-        let lastTenMinuteBlock = -1; // Tracks the last 10-minute interval for gradient change
+        let lastMinute = -1; // Tracks the last minute processed for quote and background change
+        // Removed lastTenMinuteBlock as it's no longer needed
         
         // --- BACKGROUND LOGIC ---
 
@@ -271,8 +270,8 @@
             const now = new Date();
             const minutes = now.getMinutes();
             
-            // Determine the current 10-minute block (0-9 is block 0, 10-19 is block 1, etc.)
-            const block = Math.floor(minutes / 10); 
+            // Determine the current 1-minute block (used for initializing a diverse starting color)
+            const block = Math.floor(minutes / 1); 
             
             // Determine a starting index for the palette
             currentGradientIndex = (now.getHours() * 6 + block) % GRADIENT_PALETTES.length;
@@ -352,26 +351,21 @@
                 ampmElement.textContent = ampm;
             }
 
-            // --- Quote Rotation Logic (Every Minute) ---
-            if (QUOTES.length > 0 && seconds === 0 && minutes !== lastMinute) {
+            // --- Rotation Logic (Every Minute for both Quote and Background) ---
+            if (seconds === 0 && minutes !== lastMinute) {
                 lastMinute = minutes;
-                // Use modulus against the large array length
-                currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES.length;
-                updateQuote(currentQuoteIndex); 
-            } else if (seconds !== 0 && minutes === lastMinute) {
-                lastMinute = -1;
-            }
-
-            // --- Background Rotation Logic (Every 10 Minutes) ---
-            if (seconds === 0 && minutes % 10 === 0) {
-                const currentTenMinuteBlock = minutes; 
-
-                if (currentTenMinuteBlock !== lastTenMinuteBlock) {
-                    lastTenMinuteBlock = currentTenMinuteBlock;
-                    updateBackground(); 
+                
+                // 1. Quote Rotation
+                if (QUOTES.length > 0) {
+                    currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES.length;
+                    updateQuote(currentQuoteIndex); 
                 }
-            } else if (seconds !== 0) {
-                lastTenMinuteBlock = -1;
+
+                // 2. Background Rotation (Now happens every minute)
+                updateBackground();
+            } else if (seconds !== 0 && minutes === lastMinute) {
+                // Reset lastMinute tracking when seconds roll off 0 to allow re-entry next minute
+                lastMinute = -1;
             }
             
             // --- Date Formatting ---
