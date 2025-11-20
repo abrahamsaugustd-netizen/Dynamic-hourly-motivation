@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Daily Motivation</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use a custom font and shades -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        /* --- CSS Keyframe Animation Template (Colors set by JS) --- */
+        @keyframes background-pan {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            
+            /* Initial background set via JavaScript */
+            background-size: 400% 400%;
+            animation: background-pan 60s ease infinite; /* Continuous panning */
+        }
+        
+        /* Quote Styling */
+        .quote-text {
+            font-style: italic;
+            font-size: clamp(1.25rem, 4vw, 2rem); 
+            line-height: 1.4;
+        }
+        
+        /* Custom Transition Classes for Quote Swipe Effect */
+        .fade-out-up {
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .fade-in-down {
+            transition: opacity 0.5s ease-in, transform 0.5s ease-in;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .initial-state {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+    </style>
+</head>
+<body class="selection:bg-indigo-200">
+
+    <!-- Main Content Card -->
+    <div id="main-card" class="bg-white/90 p-8 md:p-12 rounded-3xl shadow-2xl backdrop-blur-sm max-w-xl w-full text-center transition-all duration-300 ease-in-out">
+        
+        <!-- Date Display Section -->
+        <div class="mb-2">
+            <div id="current-date" class="text-base md:text-lg font-semibold text-gray-700 uppercase tracking-wider">
+                --/--/----
+            </div>
+        </div>
+
+        <!-- Time Display Section -->
+        <div class="mb-4">
+            <div id="current-time" class="text-6xl md:text-7xl font-extrabold text-[#00897B] leading-none tracking-tight">
+                --:--:--
+            </div>
+            <div id="ampm-indicator" class="text-3xl font-bold text-[#00897B] mt-1">
+                --
+            </div>
+        </div>
+        
+        <!-- Quote Section Wrapper for Transitions -->
+        <div id="quote-wrapper" class="mt-4 pt-6 border-t border-gray-200 min-h-[150px] flex flex-col justify-center">
+            <p id="quote-content" class="quote-text text-gray-800 mb-6 initial-state">
+                Loading inspiration...
+            </p>
+            <p id="quote-author" class="text-sm font-medium text-blue-600 initial-state">
+                - The Universe
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Message Box (Non-alert replacement, carried over) -->
+    <div id="message-box" class="fixed top-0 left-0 w-full h-full bg-black/50 z-50 items-center justify-center hidden" onclick="hideMessage()">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm mx-4" onclick="event.stopPropagation()">
+            <h3 class="font-bold text-lg mb-2 text-gray-800">System Message</h3>
+            <p id="message-text" class="text-gray-600">
+                This is a custom message.
+            </p>
+            <button class="mt-4 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition" onclick="hideMessage()">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA: Arrays for Quotes and Gradient Palettes ---
+        const QUOTES = [
+            { quote: "The best way to predict the future is to create it. Start now.", author: "Peter Drucker" },
+            { quote: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+            { quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+            { quote: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+            { quote: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+            { quote: "Don't count the days, make the days count.", author: "Muhammad Ali" },
+            { quote: "It is never too late to be what you might have been.", author: "George Eliot" },
+            { quote: "The power of imagination makes us infinite.", author: "John Muir" },
+            { quote: "Do not wait to strike till the iron is hot; but make the iron hot by striking.", author: "William Butler Yeats" },
+            { quote: "What you do today can improve all your tomorrows.", author: "Ralph Marston" },
+            { quote: "The journey of a thousand miles begins with a single step.", author: "Lao Tzu" },
+            { quote: "Strive not to be a success, but rather to be of value.", author: "Albert Einstein" },
+            { quote: "The mind is everything. What you think you become.", author: "Buddha" },
+            { quote: "Everything you can imagine is real.", author: "Pablo Picasso" },
+            { quote: "If you want to lift yourself up, lift up someone else.", author: "Booker T. Washington" }
+        ];
+        
+        // Array of different color palettes for the animated background
+        const GRADIENT_PALETTES = [
+            // Palette 1: Sunrise/Sky (Warm & Cool)
+            'linear-gradient(135deg, #FF6B6B, #FFE66D, #4ECDC4, #5D54A3, #FF6B6B)',
+            // Palette 2: Forest/Ocean (Greens & Blues)
+            'linear-gradient(135deg, #1C9F75, #6DE99F, #1F7C8A, #0D47A1, #1C9F75)',
+            // Palette 3: Deep Space (Purples & Blacks)
+            'linear-gradient(135deg, #1A237E, #5E35B1, #424242, #757575, #1A237E)',
+            // Palette 4: Citrus Punch (Oranges & Yellows)
+            'linear-gradient(135deg, #FFB74D, #FFD54F, #FF8A65, #E65100, #FFB74D)',
+            // Palette 5: Pastel Dreams (Soft Pinks & Light Blues)
+            'linear-gradient(135deg, #F48FB1, #A3E4D7, #C5CAE9, #80CBC4, #F48FB1)'
+        ];
+
+        let currentQuoteIndex = 0;
+        let currentGradientIndex = 0;
+        let lastMinute = -1; // Tracks the last minute processed for quote change
+        let lastTenMinuteBlock = -1; // Tracks the last 10-minute interval for gradient change
+
+        // --- BACKGROUND LOGIC ---
+
+        /**
+         * Smoothly changes the body background gradient color scheme.
+         */
+        function updateBackground() {
+            const body = document.body;
+            if (!body) return;
+
+            // Increment index and loop back to 0 if needed
+            currentGradientIndex = (currentGradientIndex + 1) % GRADIENT_PALETTES.length;
+            const newGradient = GRADIENT_PALETTES[currentGradientIndex];
+
+            // Apply the new gradient color scheme
+            body.style.backgroundImage = newGradient;
+            
+            // Note: The continuous 'background-pan' animation is already applied via CSS, 
+            // so changing 'backgroundImage' seamlessly transitions the colors in the loop.
+        }
+
+        /**
+         * Initializes the background based on the current 10-minute interval.
+         */
+        function initializeBackground() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            
+            // Determine the current 10-minute block (0-9 is block 0, 10-19 is block 1, etc.)
+            const block = Math.floor(minutes / 10); 
+            
+            // Determine a starting index for the palette
+            currentGradientIndex = (now.getHours() * 6 + block) % GRADIENT_PALETTES.length;
+            
+            const body = document.body;
+            if (body) {
+                body.style.backgroundImage = GRADIENT_PALETTES[currentGradientIndex];
+            }
+        }
+
+        // --- CORE APPLICATION LOGIC (Quote & Time) ---
+
+        /**
+         * Triggers the visual swipe effect and updates the quote content.
+         */
+        function updateQuote(newIndex) {
+            const quoteContentEl = document.getElementById('quote-content');
+            const quoteAuthorEl = document.getElementById('quote-author');
+
+            if (!quoteContentEl || !quoteAuthorEl) return;
+
+            // 1. Start the Fade-Out/Slide-Up transition for the current quote
+            quoteContentEl.classList.remove('fade-in-down');
+            quoteAuthorEl.classList.remove('fade-in-down');
+            quoteContentEl.classList.add('fade-out-up');
+            quoteAuthorEl.classList.add('fade-out-up');
+
+            // 2. Wait for the transition to complete (500ms) before changing content
+            setTimeout(() => {
+                const newQuote = QUOTES[newIndex];
+                
+                // Update content
+                quoteContentEl.textContent = `“${newQuote.quote}”`;
+                quoteAuthorEl.textContent = `- ${newQuote.author}`;
+
+                // 3. Prepare for Fade-In/Slide-Down transition
+                quoteContentEl.classList.remove('fade-out-up');
+                quoteAuthorEl.classList.remove('fade-out-up');
+                
+                // Set initial state for the transition
+                quoteContentEl.classList.add('initial-state');
+                quoteAuthorEl.classList.add('initial-state');
+
+                requestAnimationFrame(() => {
+                    // 4. Trigger the Fade-In/Slide-Down transition
+                    quoteContentEl.classList.remove('initial-state');
+                    quoteAuthorEl.classList.remove('initial-state');
+                    quoteContentEl.classList.add('fade-in-down');
+                    quoteAuthorEl.classList.add('fade-in-down');
+                });
+
+            }, 500); // Must match CSS transition duration
+        }
+
+        /**
+         * Updates the current time and date display and manages auto-rotations.
+         */
+        function updateTime() {
+            const now = new Date();
+            const timeElement = document.getElementById('current-time');
+            const ampmElement = document.getElementById('ampm-indicator');
+            const dateElement = document.getElementById('current-date');
+            
+            // Time components
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            // --- Time Display Formatting ---
+            const displayMinutes = String(minutes).padStart(2, '0');
+            const displaySeconds = String(seconds).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = String(hours % 12 || 12); 
+
+            if (timeElement && ampmElement) {
+                timeElement.textContent = `${displayHours}:${displayMinutes}:${displaySeconds}`;
+                ampmElement.textContent = ampm;
+            }
+
+            // --- Quote Rotation Logic (Every Minute) ---
+            if (seconds === 0 && minutes !== lastMinute) {
+                lastMinute = minutes;
+                currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES.length;
+                updateQuote(currentQuoteIndex);
+            } else if (seconds !== 0 && minutes === lastMinute) {
+                lastMinute = -1;
+            }
+
+            // --- Background Rotation Logic (Every 10 Minutes) ---
+            // Check if it's the start of the 10-minute interval (0, 10, 20, 30, 40, 50 min)
+            if (seconds === 0 && minutes % 10 === 0) {
+                const currentTenMinuteBlock = minutes; 
+
+                if (currentTenMinuteBlock !== lastTenMinuteBlock) {
+                    lastTenMinuteBlock = currentTenMinuteBlock;
+                    // Change the color scheme of the continuous animation
+                    updateBackground(); 
+                }
+            } else if (seconds !== 0) {
+                lastTenMinuteBlock = -1;
+            }
+
+            // --- Date Formatting ---
+            if (dateElement) {
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = now.toLocaleDateString('en-US', options).toUpperCase();
+                dateElement.textContent = formattedDate;
+            }
+        }
+
+
+        // --- MESSAGE BOX (Non-alert replacement) ---
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        function showMessage(text) {
+            if (messageText) {
+                messageText.textContent = text;
+            }
+            if (messageBox) {
+                messageBox.classList.remove('hidden');
+                messageBox.classList.add('flex');
+            }
+        }
+
+        function hideMessage() {
+            if (messageBox) {
+                messageBox.classList.add('hidden');
+                messageBox.classList.remove('flex');
+            }
+        }
+
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            // 1. Initialize the background gradient colors and start the CSS animation
+            initializeBackground();
+            
+            // 2. Set the initial quote (no transition)
+            const quoteContentEl = document.getElementById('quote-content');
+            const quoteAuthorEl = document.getElementById('quote-author');
+            
+            if (quoteContentEl && quoteAuthorEl) {
+                const initialQuote = QUOTES[currentQuoteIndex];
+                quoteContentEl.textContent = `“${initialQuote.quote}”`;
+                quoteAuthorEl.textContent = `- ${initialQuote.author}`;
+                
+                // Ensure the initial elements are visible after loading
+                quoteContentEl.classList.remove('initial-state');
+                quoteAuthorEl.classList.remove('initial-state');
+                quoteContentEl.classList.add('fade-in-down');
+                quoteAuthorEl.classList.add('fade-in-down');
+            }
+
+            // 3. Start the timer to update time every second and manage rotations
+            setInterval(updateTime, 1000); 
+        };
+
+    </script>
+</body>
+</html>
