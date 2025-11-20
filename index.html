@@ -6,6 +6,7 @@
     <title>Dynamic Daily Motivation</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Configure Tailwind to use a custom font and shades -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
@@ -65,6 +66,8 @@
     <!-- Main Content Card -->
     <div id="main-card" class="bg-white/90 p-8 md:p-12 rounded-3xl shadow-2xl backdrop-blur-sm max-w-xl w-full text-center transition-all duration-300 ease-in-out">
         
+        <!-- Note: Music button removed -->
+
         <!-- Date Display Section -->
         <div class="mb-2">
             <div id="current-date" class="text-base md:text-lg font-semibold text-gray-700 uppercase tracking-wider">
@@ -74,10 +77,10 @@
 
         <!-- Time Display Section -->
         <div class="mb-4">
-            <div id="current-time" class="text-6xl md:text-7xl font-extrabold text-[#00897B] leading-none tracking-tight">
+            <div id="current-time" class="text-6xl md:text-7xl font-extrabold text-black leading-none tracking-tight">
                 --:--:--
             </div>
-            <div id="ampm-indicator" class="text-3xl font-bold text-[#00897B] mt-1">
+            <div id="ampm-indicator" class="text-3xl font-bold text-black mt-1">
                 --
             </div>
         </div>
@@ -129,23 +132,24 @@
         
         // Array of different color palettes for the animated background
         const GRADIENT_PALETTES = [
-            // Palette 1: Sunrise/Sky (Warm & Cool)
-            'linear-gradient(135deg, #FF6B6B, #FFE66D, #4ECDC4, #5D54A3, #FF6B6B)',
-            // Palette 2: Forest/Ocean (Greens & Blues)
-            'linear-gradient(135deg, #1C9F75, #6DE99F, #1F7C8A, #0D47A1, #1C9F75)',
-            // Palette 3: Deep Space (Purples & Blacks)
-            'linear-gradient(135deg, #1A237E, #5E35B1, #424242, #757575, #1A237E)',
-            // Palette 4: Citrus Punch (Oranges & Yellows)
-            'linear-gradient(135deg, #FFB74D, #FFD54F, #FF8A65, #E65100, #FFB74D)',
-            // Palette 5: Pastel Dreams (Soft Pinks & Light Blues)
-            'linear-gradient(135deg, #F48FB1, #A3E4D7, #C5CAE9, #80CBC4, #F48FB1)'
+            // Palette 1: Vivid Sunset (Red-Orange, Gold, Blue)
+            'linear-gradient(135deg, #FF5733, #FFC300, #33FF7A, #337AFF, #FF5733)',
+            // Palette 2: Electric Ocean (Bright Blues, Greens, Indigo)
+            'linear-gradient(135deg, #00BFFF, #1E90FF, #3CB371, #4B0082, #00BFFF)',
+            // Palette 3: Neon Galaxy (Electric Purple, Hot Pink, Neon Green)
+            'linear-gradient(135deg, #9D2BFF, #F834D2, #FFD700, #49FB9D, #9D2BFF)',
+            // Palette 4: Tropical Fusion (Hot Pink, Light Salmon, Lime Green, Turquoise)
+            'linear-gradient(135deg, #FF69B4, #FFA07A, #32CD32, #40E0D0, #FF69B4)',
+            // Palette 5: Vibrant Primary (Red, Yellow, Blue, Magenta)
+            'linear-gradient(135deg, #FF0000, #FFFF00, #0000FF, #FF00FF, #FF0000)'
         ];
 
+        // --- GLOBAL STATE VARIABLES ---
         let currentQuoteIndex = 0;
         let currentGradientIndex = 0;
         let lastMinute = -1; // Tracks the last minute processed for quote change
         let lastTenMinuteBlock = -1; // Tracks the last 10-minute interval for gradient change
-
+        
         // --- BACKGROUND LOGIC ---
 
         /**
@@ -161,9 +165,6 @@
 
             // Apply the new gradient color scheme
             body.style.backgroundImage = newGradient;
-            
-            // Note: The continuous 'background-pan' animation is already applied via CSS, 
-            // so changing 'backgroundImage' seamlessly transitions the colors in the loop.
         }
 
         /**
@@ -184,50 +185,43 @@
                 body.style.backgroundImage = GRADIENT_PALETTES[currentGradientIndex];
             }
         }
-
-        // --- CORE APPLICATION LOGIC (Quote & Time) ---
+        
+        // --- QUOTE LOGIC ---
 
         /**
-         * Triggers the visual swipe effect and updates the quote content.
+         * Updates the quote display with a transition effect.
+         * @param {number} index - The index of the quote to display.
          */
-        function updateQuote(newIndex) {
+        function updateQuote(index) {
             const quoteContentEl = document.getElementById('quote-content');
             const quoteAuthorEl = document.getElementById('quote-author');
+            const newQuote = QUOTES[index];
 
             if (!quoteContentEl || !quoteAuthorEl) return;
 
-            // 1. Start the Fade-Out/Slide-Up transition for the current quote
-            quoteContentEl.classList.remove('fade-in-down');
-            quoteAuthorEl.classList.remove('fade-in-down');
+            // 1. Fade out the current quote
             quoteContentEl.classList.add('fade-out-up');
             quoteAuthorEl.classList.add('fade-out-up');
+            quoteContentEl.classList.remove('fade-in-down');
+            quoteAuthorEl.classList.remove('fade-in-down');
 
-            // 2. Wait for the transition to complete (500ms) before changing content
+
+            // 2. After transition completes, update content and fade in
             setTimeout(() => {
-                const newQuote = QUOTES[newIndex];
-                
-                // Update content
                 quoteContentEl.textContent = `“${newQuote.quote}”`;
                 quoteAuthorEl.textContent = `- ${newQuote.author}`;
 
-                // 3. Prepare for Fade-In/Slide-Down transition
+                // Swap classes to trigger the fade-in transition
                 quoteContentEl.classList.remove('fade-out-up');
                 quoteAuthorEl.classList.remove('fade-out-up');
-                
-                // Set initial state for the transition
-                quoteContentEl.classList.add('initial-state');
-                quoteAuthorEl.classList.add('initial-state');
+                quoteContentEl.classList.add('fade-in-down');
+                quoteAuthorEl.classList.add('fade-in-down');
 
-                requestAnimationFrame(() => {
-                    // 4. Trigger the Fade-In/Slide-Down transition
-                    quoteContentEl.classList.remove('initial-state');
-                    quoteAuthorEl.classList.remove('initial-state');
-                    quoteContentEl.classList.add('fade-in-down');
-                    quoteAuthorEl.classList.add('fade-in-down');
-                });
-
-            }, 500); // Must match CSS transition duration
+            }, 500); // Wait for 500ms (the duration of the fade-out transition)
         }
+
+
+        // --- MAIN TIME LOOP ---
 
         /**
          * Updates the current time and date display and manages auto-rotations.
@@ -258,25 +252,23 @@
             if (seconds === 0 && minutes !== lastMinute) {
                 lastMinute = minutes;
                 currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES.length;
-                updateQuote(currentQuoteIndex);
+                updateQuote(currentQuoteIndex); 
             } else if (seconds !== 0 && minutes === lastMinute) {
                 lastMinute = -1;
             }
 
             // --- Background Rotation Logic (Every 10 Minutes) ---
-            // Check if it's the start of the 10-minute interval (0, 10, 20, 30, 40, 50 min)
             if (seconds === 0 && minutes % 10 === 0) {
                 const currentTenMinuteBlock = minutes; 
 
                 if (currentTenMinuteBlock !== lastTenMinuteBlock) {
                     lastTenMinuteBlock = currentTenMinuteBlock;
-                    // Change the color scheme of the continuous animation
                     updateBackground(); 
                 }
             } else if (seconds !== 0) {
                 lastTenMinuteBlock = -1;
             }
-
+            
             // --- Date Formatting ---
             if (dateElement) {
                 const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -313,7 +305,7 @@
             // 1. Initialize the background gradient colors and start the CSS animation
             initializeBackground();
             
-            // 2. Set the initial quote (no transition)
+            // 2. Set the initial quote (using the new updateQuote logic)
             const quoteContentEl = document.getElementById('quote-content');
             const quoteAuthorEl = document.getElementById('quote-author');
             
